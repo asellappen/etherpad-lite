@@ -1,3 +1,19 @@
+# ----------------------------------------------------------------------------
+#
+# Package             : etherpad-lite
+# Source Repo         : https://github.com/ether/etherpad-lite
+# Travis Job Link     : https://travis-ci.com/github/asellappen/etherpad-lite/
+# Created travis.yml  : No
+# Maintainer          : Arumugam N S <asellappen@yahoo.com>/Priya Seth<sethp@us.ibm.com>
+#
+# Script License      : Apache License, Version 2 or later
+#
+# ----------------------------------------------------------------------------
+
+arch:
+  - amd64
+  - ppc64le
+  
 language: node_js
 
 node_js:
@@ -118,6 +134,69 @@ jobs:
       script:
         - "tests/frontend/travis/runnerLoadTest.sh"
     - name: "Test rate limit"
+      install:
+        - "docker network create --subnet=172.23.42.0/16 ep_net"
+        - "docker build -f Dockerfile -t epl-debian-slim ."
+        - "docker build -f tests/ratelimit/Dockerfile.nginx -t nginx-latest ."
+        - "docker build -f tests/ratelimit/Dockerfile.anotherip -t anotherip ."
+        - "docker run -p 8081:80 --rm --network ep_net --ip 172.23.42.1 -d nginx-latest"
+        - "docker run --name etherpad-docker -p 9000:9001 --rm --network ep_net --ip 172.23.42.2 -e 'TRUST_PROXY=true' epl-debian-slim &"
+        - "docker run --rm --network ep_net --ip 172.23.42.3 --name anotherip -dt anotherip"
+        - "./bin/installDeps.sh"
+      script:
+        - "cd tests/ratelimit && bash testlimits.sh"
+    - if: fork = false
+      name: "Test the Frontend without Plugins"
+      arch: ppc64le
+      install:
+        - *set_loglevel_warn
+        - "tests/frontend/travis/sauce_tunnel.sh"
+        - "bin/installDeps.sh"
+        - "export GIT_HASH=$(git rev-parse --verify --short HEAD)"
+      script:
+        - "./tests/frontend/travis/runner.sh"
+    
+    - name: "Load test Etherpad without Plugins"
+      arch: ppc64le
+      install:
+        - *set_loglevel_warn
+        - "bin/installDeps.sh"
+        - "cd src && npm install && cd -"
+        - "npm install -g etherpad-load-test"
+      script:
+        - "tests/frontend/travis/runnerLoadTest.sh"
+    # we can only frontend tests from the ether/ organization and not from forks.
+    # To request tests to be run ask a maintainer to fork your repo to ether/
+    - if: fork = false
+      name: "Test the Frontend Plugins only"
+      arch: ppc64le
+      install:
+        - *set_loglevel_warn
+        - "tests/frontend/travis/sauce_tunnel.sh"
+        - "bin/installDeps.sh"
+        - "rm tests/frontend/specs/*"
+        - *install_plugins
+        - "export GIT_HASH=$(git rev-parse --verify --short HEAD)"
+      script:
+        - "./tests/frontend/travis/runner.sh"
+    - name: "Lint test package-lock.json"
+      arch: ppc64le
+      install:
+        - "npm install lockfile-lint"
+      script:
+        - npx lockfile-lint --path src/package-lock.json --validate-https --allowed-hosts npm
+    - name: "Load test Etherpad with Plugins"
+      arch: ppc64le
+      install:
+        - *set_loglevel_warn
+        - "bin/installDeps.sh"
+        - *install_plugins
+        - "cd src && npm install && cd -"
+        - "npm install -g etherpad-load-test"
+      script:
+        - "tests/frontend/travis/runnerLoadTest.sh"
+    - name: "Test rate limit"
+      arch: ppc64le
       install:
         - "docker network create --subnet=172.23.42.0/16 ep_net"
         - "docker build -f Dockerfile -t epl-debian-slim ."
