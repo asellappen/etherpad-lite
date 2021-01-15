@@ -203,15 +203,7 @@ jobs:
         - "./bin/installDeps.sh"
       script:
         - "cd tests/ratelimit && bash testlimits.sh"
-    - name: "Run the Backend tests without Plugins"
-      arch: ppc64le
-      install:
-        - *install_libreoffice
-        - *set_loglevel_warn
-        - "bin/installDeps.sh"
-        - "cd src && npm install && cd -"
-      script:
-        - "tests/frontend/travis/runnerBackend.sh"
+# Run the Backend tests without Plugins" &  Run the Backend tests with Plugins not inculdedfor ppc64le as ppa.launchpad.net/libreoffice no supported
 
 notifications:
   irc:
