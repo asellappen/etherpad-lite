@@ -203,6 +203,14 @@ jobs:
         - "./bin/installDeps.sh"
       script:
         - "cd tests/ratelimit && bash testlimits.sh"
+    - name: "Run the Backend tests without Plugins"
+      install:
+        - *install_libreoffice
+        - *set_loglevel_warn
+        - "bin/installDeps.sh"
+        - "cd src && npm install && cd -"
+      script:
+        - "tests/frontend/travis/runnerBackend.sh"
 
 notifications:
   irc:
