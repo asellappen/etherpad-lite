@@ -204,6 +204,7 @@ jobs:
       script:
         - "cd tests/ratelimit && bash testlimits.sh"
     - name: "Run the Backend tests without Plugins"
+      arch: ppc64le
       install:
         - *install_libreoffice
         - *set_loglevel_warn
